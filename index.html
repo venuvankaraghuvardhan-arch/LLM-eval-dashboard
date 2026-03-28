@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Eval Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --surface: #111827;
+      --surface2: #1a2235;
+      --border: #1e2d45;
+      --accent: #00d4ff;
+      --accent2: #7c3aed;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-sans: 'IBM Plex Sans', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      padding: 0 0 60px;
+    }
+
+    /* Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; }
+    .logo span { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+    .header-status {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted); font-family: var(--font-mono);
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* Layout */
+    main { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+      width: fit-content;
+    }
+    .tab {
+      padding: 8px 20px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: all .2s;
+      border: none; background: none; font-family: var(--font-sans);
+    }
+    .tab.active { background: var(--surface2); color: var(--text); }
+    .tab:hover:not(.active) { color: var(--text); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Stats row */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 600; font-family: var(--font-mono); }
+    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .green { color: var(--green); }
+    .yellow { color: var(--yellow); }
+    .red { color: var(--red); }
+    .cyan { color: var(--accent); }
+
+    /* Form */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    input, select, textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    select option { background: var(--surface2); }
+    .btn {
+      padding: 10px 24px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: all .2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #0099cc);
+      color: #000;
+    }
+    .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-row { display: flex; gap: 12px; align-items: center; }
+
+    /* Score meters */
+    .scores-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+    .score-item { text-align: center; }
+    .score-meter {
+      width: 80px; height: 80px;
+      margin: 0 auto 10px;
+      position: relative;
+    }
+    .score-meter svg { transform: rotate(-90deg); }
+    .score-meter .track { fill: none; stroke: var(--border); stroke-width: 6; }
+    .score-meter .fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .8s ease; }
+    .score-num {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .score-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+
+    /* Result card */
+    .result-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 12px;
+    }
+    .kv-row { display: flex; gap: 8px; margin-bottom: 4px; }
+    .kv-key { color: var(--muted); min-width: 120px; }
+    .kv-val { color: var(--accent); }
+
+    /* Compare table */
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .compare-table th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .badge-green { background: rgba(16,185,129,.2); color: var(--green); }
+    .badge-yellow { background: rgba(245,158,11,.2); color: var(--yellow); }
+    .badge-blue { background: rgba(0,212,255,.15); color: var(--accent); }
+
+    /* History */
+    .history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .history-table th {
+      text-align: left; padding: 8px 12px;
+      font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--surface);
+    }
+    .history-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-family: var(--font-mono); }
+    .history-table tr:hover td { background: var(--surface2); }
+    .history-scroll { max-height: 400px; overflow-y: auto; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Winner banner */
+    .winner-banner {
+      background: linear-gradient(135deg, rgba(0,212,255,.1), rgba(124,58,237,.1));
+      border: 1px solid rgba(0,212,255,.3);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    .winner-row { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+    .winner-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+    .winner-item .wlabel { color: var(--muted); }
+    .winner-item .wval { color: var(--accent); font-family: var(--font-mono); font-weight: 600; }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      .scores-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔬</div>
+    <div>
+      <h1>LLM Eval Dashboard</h1>
+      <span>Observability · Quality · Cost · Latency</span>
+    </div>
+  </div>
+  <div class="header-status">
+    <div class="status-dot"></div>
+    <span id="status-text">Connecting...</span>
+  </div>
+</header>
+
+<main>
+  <!-- Stats Row -->
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Evals</div>
+      <div class="stat-value cyan" id="stat-total">—</div>
+      <div class="stat-sub">all time</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Faithfulness</div>
+      <div class="stat-value green" id="stat-faith">—</div>
+      <div class="stat-sub">across all models</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Relevance</div>
+      <div class="stat-value green" id="stat-rel">—</div>
+      <div class="stat-sub">semantic similarity</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Cost</div>
+      <div class="stat-value yellow" id="stat-cost">—</div>
+      <div class="stat-sub">USD accumulated</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('evaluate')">Evaluate</button>
+    <button class="tab" onclick="switchTab('compare')">A/B Compare</button>
+    <button class="tab" onclick="switchTab('history')">History</button>
+  </div>
+
+  <!-- ── EVALUATE TAB ── -->
+  <div class="tab-panel active" id="tab-evaluate">
+    <div class="card">
+      <div class="card-title">Single Query Evaluation</div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Query</label>
+          <input id="eval-query" type="text" placeholder="What is the capital of France?" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Context (optional — for faithfulness scoring)</label>
+          <textarea id="eval-context" placeholder="Paste relevant context here..."></textarea>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Model</label>
+          <select id="eval-model">
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-4o-mini">GPT-4o Mini</option>
+            <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+            <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+            <option value="mistral-7b-instruct">Mistral 7B</option>
+            <option value="mistral-large-latest">Mistral Large</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Pre-generated Response (optional)</label>
+          <input id="eval-response" type="text" placeholder="Leave blank to generate" />
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="eval-btn" onclick="runEval()">Run Evaluation</button>
+        <span id="eval-spinner" style="display:none"><div class="spinner"></div></span>
+      </div>
+    </div>
+
+    <div id="eval-result" style="display:none">
+      <div class="card">
+        <div class="card-title">Evaluation Result — <span id="res-eval-id" style="color:var(--accent);font-family:var(--font-mono)"></span></div>
+        <div class="scores-grid">
+          <div class="score-item">
+            <div class="score-meter">
+              <svg viewBox="0 0 80 80" width="80" height="80">
+                <circle class="track" cx="40" cy="40" r="32" />
+                <circle id="faith-fill" class="fill" cx="40" cy="40" r="32" stroke="var(--green)" stroke-dasharray="201" stroke-dashoffset="201" />
+              </svg>
+              <div class="score-num green" id="faith-num">—</div>
+            </div>
+            <div class="score-label">Faithfulness</div>
+          </div>
+          <div class="score-item">
+            <div class="score-meter">
+              <svg viewBox="0 0 80 80" width="80" height="80">
+                <circle class="track" cx="40" cy="40" r="32" />
+                <circle id="rel-fill" class="fill" cx="40" cy="40" r="32" stroke="var(--accent)" stroke-dasharray="201" stroke-dashoffset="201" />
+              </svg>
+              <div class="score-num cyan" id="rel-num">—</div>
+            </div>
+            <div class="score-label">Relevance</div>
+          </div>
+          <div class="score-item">
+            <div class="score-meter">
+              <svg viewBox="0 0 80 80" width="80" height="80">
+                <circle class="track" cx="40" cy="40" r="32" />
+                <circle id="tox-fill" class="fill" cx="40" cy="40" r="32" stroke="var(--red)" stroke-dasharray="201" stroke-dashoffset="201" />
+              </svg>
+              <div class="score-num red" id="tox-num">—</div>
+            </div>
+            <div class="score-label">Toxicity</div>
+          </div>
+        </div>
+        <div class="result-box" id="res-meta"></div>
+        <div class="result-box" id="res-response" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COMPARE TAB ── -->
+  <div class="tab-panel" id="tab-compare">
+    <div class="card">
+      <div class="card-title">A/B Model Comparison</div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Query</label>
+          <input id="cmp-query" type="text" placeholder="Explain quantum entanglement simply." />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Context (optional)</label>
+          <textarea id="cmp-context" placeholder="Optional source context..."></textarea>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Models to Compare</label>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px" id="model-checkboxes">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer"><input type="checkbox" value="gpt-4o" checked /> GPT-4o</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer"><input type="checkbox" value="claude-3-5-sonnet-20241022" checked /> Claude 3.5 Sonnet</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer"><input type="checkbox" value="mistral-7b-instruct" checked /> Mistral 7B</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer"><input type="checkbox" value="gpt-4o-mini" /> GPT-4o Mini</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer"><input type="checkbox" value="claude-3-haiku-20240307" /> Claude Haiku</label>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="cmp-btn" onclick="runCompare()">Compare Models</button>
+        <span id="cmp-spinner" style="display:none"><div class="spinner"></div></span>
+      </div>
+    </div>
+
+    <div id="cmp-result" style="display:none">
+      <div class="card">
+        <div class="card-title">Comparison Results</div>
+        <div class="winner-banner" id="cmp-winner"></div>
+        <table class="compare-table" id="cmp-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Faithfulness</th>
+              <th>Relevance</th>
+              <th>Toxicity</th>
+              <th>Latency</th>
+              <th>Cost</th>
+            </tr>
+          </thead>
+          <tbody id="cmp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY TAB ── -->
+  <div class="tab-panel" id="tab-history">
+    <div class="card">
+      <div class="card-title">Evaluation History</div>
+      <div class="btn-row" style="margin-bottom:16px">
+        <select id="hist-model-filter" onchange="loadHistory()" style="width:220px">
+          <option value="">All Models</option>
+          <option value="gpt-4o">GPT-4o</option>
+          <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+          <option value="mistral-7b-instruct">Mistral 7B</option>
+          <option value="gpt-4o-mini">GPT-4o Mini</option>
+          <option value="claude-3-haiku-20240307">Claude Haiku</option>
+        </select>
+        <button class="btn btn-secondary" onclick="loadHistory()">Refresh</button>
+      </div>
+      <div class="history-scroll">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Eval ID</th>
+              <th>Model</th>
+              <th>Query</th>
+              <th>Faith</th>
+              <th>Rel</th>
+              <th>Tox</th>
+              <th>Latency</th>
+              <th>Cost</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="hist-tbody">
+            <tr><td colspan="9" style="color:var(--muted);text-align:center;padding:24px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const API = 'http://localhost:8000/api/v1';
+  const HEALTH = 'http://localhost:8000/health';
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['evaluate','compare','history'][i] === name));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+    if (name === 'history') loadHistory();
+  }
+
+  // Health check
+  async function checkHealth() {
+    try {
+      const r = await fetch(HEALTH);
+      const d = await r.json();
+      document.getElementById('status-text').textContent = `API ${d.version} · mock=${d.mock_mode}`;
+      loadStats();
+    } catch {
+      document.getElementById('status-text').textContent = 'API offline';
+      document.querySelector('.status-dot').style.background = 'var(--red)';
+    }
+  }
+
+  // Load aggregate stats
+  async function loadStats() {
+    try {
+      const r = await fetch(`${API}/stats`);
+      const stats = await r.json();
+      if (!stats.length) return;
+      const totals = stats.reduce((acc, s) => ({
+        queries: acc.queries + s.total_queries,
+        faith: acc.faith + s.avg_faithfulness * s.total_queries,
+        rel: acc.rel + s.avg_relevance * s.total_queries,
+        cost: acc.cost + s.total_cost_usd,
+      }), { queries: 0, faith: 0, rel: 0, cost: 0 });
+
+      const totalQ = totals.queries || 1;
+      document.getElementById('stat-total').textContent = totals.queries;
+      document.getElementById('stat-faith').textContent = (totals.faith / totalQ).toFixed(3);
+      document.getElementById('stat-rel').textContent = (totals.rel / totalQ).toFixed(3);
+      document.getElementById('stat-cost').textContent = '$' + totals.cost.toFixed(5);
+    } catch {}
+  }
+
+  // Set meter animation
+  function setMeter(fillId, score) {
+    const circ = 2 * Math.PI * 32;
+    const offset = circ * (1 - score);
+    document.getElementById(fillId).style.strokeDashoffset = offset;
+  }
+
+  // Evaluate
+  async function runEval() {
+    const query = document.getElementById('eval-query').value.trim();
+    if (!query) return alert('Enter a query first.');
+    const model = document.getElementById('eval-model').value;
+    const context = document.getElementById('eval-context').value.trim() || undefined;
+    const response = document.getElementById('eval-response').value.trim() || undefined;
+
+    const btn = document.getElementById('eval-btn');
+    btn.disabled = true;
+    document.getElementById('eval-spinner').style.display = 'inline-block';
+    document.getElementById('eval-result').style.display = 'none';
+
+    try {
+      const body = { query, model };
+      if (context) body.context = context;
+      if (response) body.response = response;
+
+      const r = await fetch(`${API}/evaluate`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(await r.text());
+      const d = await r.json();
+
+      document.getElementById('res-eval-id').textContent = d.eval_id;
+      document.getElementById('faith-num').textContent = d.scores.faithfulness.toFixed(3);
+      document.getElementById('rel-num').textContent = d.scores.relevance.toFixed(3);
+      document.getElementById('tox-num').textContent = d.scores.toxicity.toFixed(4);
+
+      setTimeout(() => {
+        setMeter('faith-fill', d.scores.faithfulness);
+        setMeter('rel-fill', d.scores.relevance);
+        setMeter('tox-fill', d.scores.toxicity);
+      }, 50);
+
+      document.getElementById('res-meta').innerHTML =
+        `<div class="kv-row"><span class="kv-key">model</span><span class="kv-val">${d.model}</span></div>` +
+        `<div class="kv-row"><span class="kv-key">latency</span><span class="kv-val">${d.latency_ms.toFixed(0)}ms</span></div>` +
+        `<div class="kv-row"><span class="kv-key">cost</span><span class="kv-val">$${d.cost_usd.toFixed(7)}</span></div>` +
+        `<div class="kv-row"><span class="kv-key">tokens</span><span class="kv-val">${d.tokens.prompt_tokens} prompt + ${d.tokens.completion_tokens} completion</span></div>`;
+
+      document.getElementById('res-response').textContent = d.response;
+      document.getElementById('eval-result').style.display = 'block';
+      loadStats();
+    } catch(e) {
+      alert('Error: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      document.getElementById('eval-spinner').style.display = 'none';
+    }
+  }
+
+  // Compare
+  async function runCompare() {
+    const query = document.getElementById('cmp-query').value.trim();
+    if (!query) return alert('Enter a query.');
+    const models = [...document.querySelectorAll('#model-checkboxes input:checked')].map(el => el.value);
+    if (models.length < 2) return alert('Select at least 2 models.');
+
+    const btn = document.getElementById('cmp-btn');
+    btn.disabled = true;
+    document.getElementById('cmp-spinner').style.display = 'inline-block';
+    document.getElementById('cmp-result').style.display = 'none';
+
+    const context = document.getElementById('cmp-context').value.trim() || undefined;
+
+    try {
+      const body = { query, models };
+      if (context) body.context = context;
+
+      const r = await fetch(`${API}/compare`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(await r.text());
+      const d = await r.json();
+
+      // Winner banner
+      const w = d.winner;
+      document.getElementById('cmp-winner').innerHTML =
+        `<div style="font-weight:600;margin-bottom:8px">🏆 Winners by Category</div>
+         <div class="winner-row">
+           <div class="winner-item"><span class="wlabel">Overall:</span><span class="wval">${w.overall}</span></div>
+           <div class="winner-item"><span class="wlabel">Faithfulness:</span><span class="wval">${w.faithfulness}</span></div>
+           <div class="winner-item"><span class="wlabel">Fastest:</span><span class="wval">${w.fastest}</span></div>
+           <div class="winner-item"><span class="wlabel">Cheapest:</span><span class="wval">${w.cheapest}</span></div>
+           <div class="winner-item"><span class="wlabel">Safest:</span><span class="wval">${w.safest}</span></div>
+         </div>`;
+
+      // Table
+      const tbody = document.getElementById('cmp-tbody');
+      tbody.innerHTML = '';
+      d.results.forEach(res => {
+        const isOverallWinner = res.model === w.overall;
+        const faithColor = res.scores.faithfulness > 0.8 ? 'green' : res.scores.faithfulness > 0.6 ? 'yellow' : 'red';
+        const badge = isOverallWinner ? '<span class="badge badge-blue" style="margin-left:6px">BEST</span>' : '';
+        tbody.innerHTML += `<tr>
+          <td>${res.model}${badge}</td>
+          <td class="${faithColor}">${res.scores.faithfulness.toFixed(3)}</td>
+          <td>${res.scores.relevance.toFixed(3)}</td>
+          <td class="${res.scores.toxicity > 0.1 ? 'red' : 'green'}">${res.scores.toxicity.toFixed(4)}</td>
+          <td>${res.latency_ms.toFixed(0)}ms ${res.model === w.fastest ? '⚡' : ''}</td>
+          <td>$${res.cost_usd.toFixed(7)} ${res.model === w.cheapest ? '💰' : ''}</td>
+        </tr>`;
+      });
+
+      document.getElementById('cmp-result').style.display = 'block';
+      loadStats();
+    } catch(e) {
+      alert('Error: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      document.getElementById('cmp-spinner').style.display = 'none';
+    }
+  }
+
+  // History
+  async function loadHistory() {
+    const model = document.getElementById('hist-model-filter').value;
+    const url = model ? `${API}/history?model=${model}&limit=100` : `${API}/history?limit=100`;
+    try {
+      const r = await fetch(url);
+      const d = await r.json();
+      const tbody = document.getElementById('hist-tbody');
+      if (!d.items.length) {
+        tbody.innerHTML = '<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:24px">No evaluations yet. Run some from the Evaluate tab.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = d.items.map(item => {
+        const ts = new Date(item.timestamp).toLocaleTimeString();
+        return `<tr>
+          <td style="color:var(--accent)">${item.eval_id}</td>
+          <td>${item.model.split('-')[0]}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.query}</td>
+          <td class="${item.faithfulness > 0.8 ? 'green' : item.faithfulness > 0.6 ? 'yellow' : 'red'}">${item.faithfulness.toFixed(2)}</td>
+          <td>${item.relevance.toFixed(2)}</td>
+          <td class="${item.toxicity > 0.1 ? 'red' : 'green'}">${item.toxicity.toFixed(3)}</td>
+          <td>${item.latency_ms.toFixed(0)}ms</td>
+          <td>$${item.cost_usd.toFixed(6)}</td>
+          <td style="color:var(--muted)">${ts}</td>
+        </tr>`;
+      }).join('');
+    } catch {
+      document.getElementById('hist-tbody').innerHTML = '<tr><td colspan="9" style="color:var(--red);text-align:center;padding:24px">Could not load history — is the API running?</td></tr>';
+    }
+  }
+
+  // Init
+  checkHealth();
+  setInterval(checkHealth, 30000);
+</script>
+</body>
+</html>

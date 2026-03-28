@@ -1,0 +1,52 @@
+[
+  {
+    "query": "What is the capital of France?",
+    "context": "France is a country in Western Europe bordered by Belgium, Luxembourg, Germany, Switzerland, Italy, Monaco, Spain and Andorra. Its capital and largest city is Paris, which has been a major settlement for over 2,000 years.",
+    "expected_keywords": ["Paris"]
+  },
+  {
+    "query": "How does the attention mechanism work in transformers?",
+    "context": "The attention mechanism in transformers computes a weighted sum of values, where the weights are determined by the compatibility of queries and keys. Multi-head attention runs several attention functions in parallel and concatenates the results.",
+    "expected_keywords": ["queries", "keys", "values", "weighted"]
+  },
+  {
+    "query": "What is RAG and why is it useful?",
+    "context": "Retrieval-Augmented Generation (RAG) is an AI framework that combines information retrieval with language generation. It retrieves relevant documents from a knowledge base and provides them as context to an LLM, reducing hallucinations and improving factual accuracy.",
+    "expected_keywords": ["retrieval", "generation", "hallucination", "context"]
+  },
+  {
+    "query": "Explain gradient descent optimization.",
+    "context": "Gradient descent is an iterative optimization algorithm used to minimize a differentiable function. It works by computing the gradient of the loss function with respect to the model parameters, then updating the parameters in the opposite direction of the gradient, scaled by a learning rate.",
+    "expected_keywords": ["gradient", "loss", "learning rate", "parameters"]
+  },
+  {
+    "query": "What is the difference between precision and recall?",
+    "context": "Precision measures the proportion of true positive predictions among all positive predictions: TP/(TP+FP). Recall measures the proportion of actual positives correctly identified: TP/(TP+FN). High precision means few false positives; high recall means few false negatives.",
+    "expected_keywords": ["precision", "recall", "false positive", "true positive"]
+  },
+  {
+    "query": "What is a vector embedding?",
+    "context": "A vector embedding is a dense numerical representation of data (text, images, etc.) in a continuous vector space. Similar items are located close together in this space, enabling semantic search, clustering, and other ML tasks.",
+    "expected_keywords": ["vector", "numerical", "semantic", "representation"]
+  },
+  {
+    "query": "How does RLHF improve language models?",
+    "context": "Reinforcement Learning from Human Feedback (RLHF) improves LLMs by training a reward model on human preference data, then fine-tuning the language model using reinforcement learning to maximize the reward signal, aligning outputs with human values and preferences.",
+    "expected_keywords": ["reward", "human", "fine-tuning", "alignment"]
+  },
+  {
+    "query": "What is prompt injection?",
+    "context": "Prompt injection is a security vulnerability where malicious input manipulates an LLM's behavior by overriding or hijacking the system prompt. Attackers can craft user inputs that cause the model to ignore instructions or perform unintended actions.",
+    "expected_keywords": ["injection", "malicious", "system prompt", "security"]
+  },
+  {
+    "query": "Explain the concept of hallucination in LLMs.",
+    "context": "Hallucination in large language models refers to the generation of content that is factually incorrect, fabricated, or not grounded in the provided context. LLMs can hallucinate due to training data biases, incomplete information, or the probabilistic nature of token generation.",
+    "expected_keywords": ["hallucination", "factually incorrect", "grounded", "fabricated"]
+  },
+  {
+    "query": "What is fine-tuning vs few-shot prompting?",
+    "context": "Fine-tuning involves updating a pre-trained model's weights on a task-specific dataset, while few-shot prompting provides examples directly in the prompt without modifying weights. Fine-tuning is more expensive but often yields better task-specific performance.",
+    "expected_keywords": ["weights", "fine-tuning", "few-shot", "examples"]
+  }
+]
